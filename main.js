@@ -9,13 +9,9 @@ const {
   dialog,
 } = require("electron");
 const path = require("path");
-const Store = require("electron-store");
-const storage = new Store();
-
 const isDev = !app.isPackaged;
 
-let tray, mainWindow, menu;
-let sound;
+let tray, mainWindow, menu, sound;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -96,27 +92,10 @@ ipcMain.on("startAudio", (_, path) => {
   sound.play(path);
 });
 
-ipcMain.on("selectFiles", (_) => {
-  dialog
-    .showOpenDialog({ properties: ["openFile", "multiSelections"] })
-    .then((result) => {
-      console.log(result);
-    });
-});
-
-app.whenReady().then(() => {
-  ipcMain.handle("dialog:openFile", handleFileOpen);
-  ipcMain.handle("storage:getPlaylists", handleGetPlaylists);
-  // ipcMain.handle("storage:setPlaylists", handleSetPlaylists(playlists));
-  app.dock.setIcon("./assets/tangerine192.png");
-  app.dock.hide();
-  createWindow();
-  createTray();
-});
-
 async function handleFileOpen() {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ["openFile", "multiSelections"],
+    filters: [{ name: "Audio", extensions: ["mp3", "wav"] }],
   });
   if (canceled) {
     return;
@@ -125,11 +104,10 @@ async function handleFileOpen() {
   }
 }
 
-async function handleGetPlaylists() {
-  const result = await storage.get("playlists");
-  return result;
-}
-
-ipcMain.on("setPlaylists", (_, playlists) => {
-  storage.set("playlists", playlists);
+app.whenReady().then(() => {
+  ipcMain.handle("dialog:openFile", handleFileOpen);
+  app.dock.setIcon("./assets/tangerine192.png");
+  app.dock.hide();
+  createWindow();
+  createTray();
 });
